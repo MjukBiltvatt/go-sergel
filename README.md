@@ -11,17 +11,21 @@ import "github.com/MjukBiltvatt/go-sergel"
 ## Usage
 Before sending an SMS with `go-sergel`, you must first create a new Sergel client.
 ```go
-client := sergel.NewClient(sergel.NewClientParams{
-    Username: "username",
-    Password: "password", 
-    PlatformID: "platform_id",
-    PlatformPartnerID: "platform_partner_id",
-    URL: "https://your-sergel-url.com",
+client, err := sergel.NewClient(sergel.NewClientParams{
+    Username:           "username",
+    Password:           "password", 
+    PlatformID:         "platform_id",
+    PlatformPartnerID:  "platform_partner_id",
+    URL:                "https://your-sergel-url.com",
+    CountryCode:        "+46",
 })
+if err != nil {
+    handleErr(err)
+}
 ```
-All field values of `sergel.NewClientParams` should be accessible to you via Sergel. The URL field can be including or excluding a trailing `/`. 
+All field values of `sergel.NewClientParams` should be accessible to you via Sergel. The URL field can be including or excluding a trailing `/`. The field `CountryCode` is optional, but without it, you cannot send messages with a receiving phone number that starts with the character '0'.
 
-You can start sending messages as soon as your client has been created. To send a regular MT (mobile-terminated) message, follow the example below. Note that this example requires you to specify the country code for each message, such as `+46`. The receiving phone number therefor cannot start with a zero.
+You can start sending messages as soon as your client has been created. To send a regular MT (mobile-terminated) message, follow the example below.
 
 ```go
 if err := client.Send("sender", "+46000000000", "message"); err != nil {
@@ -30,27 +34,17 @@ if err := client.Send("sender", "+46000000000", "message"); err != nil {
 fmt.Println("Message was sent!")
 ```
 
-To set a standard country code for the client, which will allow you to use a zero as the first character in the receiver argument above, simple call the following method.
-
-```go 
-if err := client.SetCountryCode("+46"); err != nil {
-    handleErr(err)
-}
-```
-
-If the argument to `SetCountryCode` does not begin with a `+` character, then an error will be returned.
-
 ### Complete example
 ```go
-client := sergel.NewClient(sergel.NewClientParams{
+client, err := sergel.NewClient(sergel.NewClientParams{
     Username: "username",
     Password: "password", 
     PlatformID: "platform_id",
     PlatformPartnerID: "platform_partner_id",
     URL: "https://your-sergel-url.com",
+    CountryCode: "+46",
 })
-
-if err := client.SetCountryCode("+46"); err != nil {
+if err != nil {
     fmt.Println(err)
     return
 }
