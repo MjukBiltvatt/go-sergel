@@ -5,20 +5,32 @@ import (
 	"regexp"
 )
 
+// Client is an abstraction of the interactions with go-sergel. This
+// interface can be mocked for testing if required. To get started
+// with mocking please visit mocks.go or inspect the README.
 type Client interface {
+	// Send sends an SMS message to the provided receiver, here named
+	// 'to'. The message will have a source of 'sender' and will
+	// contain the text specified in 'message'.
 	Send(sender string, to string, message string) error
-	SetCountryCode(countryCode string) error
 }
 
+// NewClientParams is a struct containing all the fields to set
+// up a new concrete client that communicates with Sergel.
 type NewClientParams struct {
-	Username          string
-	Password          string
-	PlatformID        string
-	PlatformPartnerID string
-	URL               string
+	Username          string // required
+	Password          string // required
+	PlatformID        string // required
+	PlatformPartnerID string // required
+	URL               string // required
+	CountryCode       string
 }
 
-func NewClient(params NewClientParams) Client {
+// NewClient returns a concrete implementation of the Client interface
+func NewClient(params NewClientParams) (Client, error) {
+	if err := validateNewClientParams(params); err != nil {
+		return nil, err
+	}
 	if params.URL[len(params.URL)-1] == '/' {
 		params.URL = params.URL[:len(params.URL)-1]
 	}
@@ -30,20 +42,39 @@ func NewClient(params NewClientParams) Client {
 			platformPartnerID: params.PlatformPartnerID,
 			baseUrl:           params.URL,
 		},
-	}
+		countryCode: params.CountryCode,
+	}, nil
 }
 
+// validateNewClientParams validates the parameters sent into
+// NewClient and returns an error if any required parameter is
+// malformed.
+func validateNewClientParams(params NewClientParams) error {
+	if params.Username == "" {
+		return ErrInvalidUsername
+	}
+	if params.Password == "" {
+		return ErrInvalidPassword
+	}
+	if params.PlatformID == "" {
+		return ErrInvalidPlatformID
+	}
+	if params.PlatformPartnerID == "" {
+		return ErrInvalidPlatformPartnerID
+	}
+	// TODO: perform better validation for URL
+	if params.URL == "" {
+		return ErrInvalidBaseURL
+	}
+	return nil
+}
+
+// client is a concrete implementation of the Client interface
+// which uses an underlying provided that communicates with
+// Sergel.
 type client struct {
 	countryCode string
 	provider
-}
-
-func (c *client) SetCountryCode(countryCode string) error {
-	if countryCode[0] != '+' {
-		return ErrBadCountryCode
-	}
-	c.countryCode = countryCode
-	return nil
 }
 
 func (c client) Send(sender, to, message string) error {
@@ -58,6 +89,9 @@ func (c client) Send(sender, to, message string) error {
 	return c.provider.mt(sender, to, message)
 }
 
+// validateSendParams makes sure that the parameters passed into
+// the send method are not empty and returns a suitable error if
+// any of them are.
 func (c client) validateSendParams(sender, to, message string) error {
 	if sender == "" {
 		return ErrInvalidSender
@@ -71,13 +105,11 @@ func (c client) validateSendParams(sender, to, message string) error {
 	return nil
 }
 
+// formatReceiver formats the receiving phone number in such a
+// way that will allow Sergel to understand it.
 func (c client) formatReceiver(to string) (string, error) {
 	if c.countryCode != "" {
-		if countryCodedTo, err := c.prependReceiverCountryCode(to); err != nil {
-			return "", err
-		} else {
-			to = countryCodedTo
-		}
+		to = c.prependReceiverCountryCode(to)
 	}
 	reg, err := regexp.Compile("[^,+0-9]+")
 	if err != nil {
@@ -87,9 +119,11 @@ func (c client) formatReceiver(to string) (string, error) {
 	return to, nil
 }
 
-func (c client) prependReceiverCountryCode(to string) (string, error) {
+// prependReceiverCountryCode adds the standard country code to
+// the phone number if a country code is not in place already
+func (c client) prependReceiverCountryCode(to string) string {
 	if to[0] == '+' {
-		return to, nil
+		return to
 	}
-	return fmt.Sprintf("%s%s", c.countryCode, to[1:]), nil
+	return fmt.Sprintf("%s%s", c.countryCode, to[1:])
 }

@@ -7,6 +7,12 @@ var (
 	ErrInvalidSender   = errors.New("the specified sender is invalid")
 	ErrInvalidReceiver = errors.New("the specified receiver is invalid")
 	ErrInvalidMessage  = errors.New("the specified message is invalid")
+
+	ErrInvalidUsername          = errors.New("the specified username is invalid")
+	ErrInvalidPassword          = errors.New("the specified password is invalid")
+	ErrInvalidPlatformID        = errors.New("the speficied platform id is invalid")
+	ErrInvalidPlatformPartnerID = errors.New("the specified platform partner id is invalid")
+	ErrInvalidBaseURL           = errors.New("the specified URL is invalid")
 )
 
 var (
