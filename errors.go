@@ -39,11 +39,16 @@ var sergelErrMap = map[int]error{
 	106301: ErrSpecifiedGateUnavailable,
 }
 
+// isSergelError returns true if the provided result
+// code can be mapped to a Sergel API error which is
+// recognized by go-sergel.
 func isSergelError(resultCode int) bool {
 	_, exists := sergelErrMap[resultCode]
 	return exists
 }
 
+// sergelErr returns the error corresponding to the
+// provided resultCode.
 func sergelErr(resultCode int) error {
 	return sergelErrMap[resultCode]
 }
